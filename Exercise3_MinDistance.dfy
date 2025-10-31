@@ -30,21 +30,30 @@ module Assignment2_Ex3 {
       invariant 0 <= iMin < a.Length
       invariant 0 <= jMin < b.Length
       invariant d == Abs(a[iMin] - b[jMin])
+      invariant d <= Abs(a[iMin] - b[jMin])
+      
+
+
       // proteger o acesso com a condição de validade dos índices
       invariant (i < a.Length && j < b.Length) ==> d <= Abs(a[i] - b[j])
     {
       var cur := Abs(a[i] - b[j]);
+      assert d <= Abs(a[i] - b[j]);
       if cur < d {
         d := cur;
         iMin := i;
         jMin := j;
       }
-
+      assert d <= Abs(a[iMin] - b[jMin]);
+      assert (i < a.Length && j < b.Length) ==> d <= Abs(a[i] - b[j]);
       if a[i] < b[j] {
         i := i + 1;
       } else {
         j := j + 1;
       }
+      assert d <= Abs(a[iMin] - b[jMin]);
+      assert (i < a.Length && j < b.Length) ==> d <= Abs(a[i] - b[j]);
+
     }
   }
 }

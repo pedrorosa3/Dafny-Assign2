@@ -47,11 +47,13 @@ module Assignment2_Ex3 {
       assert d <= Abs(a[iMin] - b[jMin]);
       assert (i < a.Length && j < b.Length) ==> d <= Abs(a[i] - b[j]);
       if a[i] < b[j] {
+        if i + 1 >= a.Length { break; }
         i := i + 1;
-        assert i <= a.Length;
+        assert i < a.Length;
       } else {
+        if j + 1 >= b.Length { break; }
         j := j + 1;
-        assert j <= b.Length;
+        assert j < b.Length;
       }
       assert 0 <= iMin < a.Length;
       assert 0 <= jMin < b.Length;

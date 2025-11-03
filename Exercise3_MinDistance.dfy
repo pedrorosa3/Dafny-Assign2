@@ -31,11 +31,17 @@ module Assignment2_Ex3 {
       invariant 0 <= jMin < b.Length
       invariant d == Abs(a[iMin] - b[jMin])
       invariant d <= Abs(a[iMin] - b[jMin])
+      //invariant (i < a.Length && j < b.Length) ==> d <= Abs(a[i] - b[j])
+      //decreases a.Length - i + b.Length - j
+      invariant forall k: nat, l: nat :: 0 <= k < i && 0 <= l < b.Length ==> d <= Abs(a[k] - b[l])
+      invariant forall k: nat, l: nat :: 0 <= k < a.Length && 0 <= l < j ==> d <= Abs(a[k] - b[l])
+
+      
       
 
-
+      //invariant forall i1, j1 :: 0 <= i1 < a.Length && 0 <= j1 < b.Length ==> d <= Abs(a[i1] - b[j1])
       // proteger o acesso com a condição de validade dos índices
-      invariant (i < a.Length && j < b.Length) ==> d <= Abs(a[i] - b[j])
+      //invariant (i < a.Length && j < b.Length) ==> d <= Abs(a[i] - b[j])
     {
       var cur := Abs(a[i] - b[j]);
       assert d <= Abs(a[i] - b[j]);
@@ -60,7 +66,7 @@ module Assignment2_Ex3 {
       assert d <= Abs(a[iMin] - b[jMin]);
       assert 0 <= i < a.Length;
       assert 0 <= j < b.Length;
-      assert (i < a.Length && j < b.Length) ==> d <= Abs(a[i] - b[j]);
+      //assert (i < a.Length && j < b.Length) ==> d <= Abs(a[i] - b[j]);
       
 
     }

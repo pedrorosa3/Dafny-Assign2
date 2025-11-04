@@ -136,8 +136,21 @@ class Minesweeper {
   {
     this in Repr && this.revealed in Repr && this.flagged in Repr && this.field in Repr 
     //COMPLETE ME
-    
+    // dims coerentes
+    && Columns() > 1 && Lines() > 1
+    // número de minas coerente com as dimensões
+    && 0 < NumberOfMines() < Columns() * Lines()
+      
+    // todos os observers bem-definidos: se IsOpen/IsFlagged/HasMine são chamados, a posição é válida
+    && (forall r,c :: IsOpen(r,c) ==> IsPosition(r,c))
+    && (forall r,c :: IsFlagged(r,c) ==> IsPosition(r,c))
+    && (forall r,c :: HasMine(r,c) ==> IsPosition(r,c))
 
+    // se o jogo está WON então não existe posição sem mina que esteja fechada
+    && (Won() ==> !ExistsPositionToOpen())
+
+    // se o jogo está alive então ou existe posição para abrir ou já ganhou (redundante com IsAlive def)
+    && (IsAlive() ==> ExistsPositionToOpen() || Won())
   }
 
   /** The observers of Minesweeper objects **/
@@ -188,6 +201,7 @@ class Minesweeper {
     reads this,Repr,revealed
     requires row < revealed.Length0
     requires col < revealed.Length1
+    requires 1 <= row <= height && 1 <= col <= width
 
   {
     revealed[row-1,col-1]
@@ -198,6 +212,7 @@ class Minesweeper {
     reads this,Repr,flagged
     requires row < flagged.Length0
     requires col < flagged.Length1
+    requires 1 <= row <= height && 1 <= col <= width
   {
     flagged[row-1,col-1]
   }
@@ -209,6 +224,7 @@ class Minesweeper {
     reads this,Repr,field
     requires row < field.Length0
     requires col < field.Length1
+    requires 1 <= row <= height && 1 <= col <= width
   {
     field[row-1,col-1]
   }
@@ -249,7 +265,14 @@ class Minesweeper {
   /** The constructor of a Minesweeper object **/
 
   constructor(w: nat, h: nat, m: nat)
+    
+    requires w > 1 && h > 1 && 0 < m < w * h
     ensures fresh(Repr)
+    ensures Valid()
+    ensures Columns() == w && Lines() == h
+    ensures NumberOfMines() == m
+    ensures IsAlive() && !Won()
+    ensures ExistsPositionToOpen()
   {
     height := h;
     width := w;
@@ -294,7 +317,16 @@ class Minesweeper {
   //and update the game state accordingly
   //Can be called only if the game is not over
   method Open(row: nat, col: nat)
+    
+    requires Valid()
+    requires IsAlive()
+    requires IsPosition(row, col)
+    requires !IsOpen(row, col)
     modifies Repr
+    ensures Valid()
+    ensures IsOpen(row, col)
+    ensures (HasMine(row, col) ==> !IsAlive() && !Won())
+    ensures (!HasMine(row, col) ==> (IsAlive() || Won()))
   {
     var r,c := row-1, col-1;
     revealed[r,c] := true;
@@ -327,7 +359,12 @@ class Minesweeper {
   //Toggle the flagged status of a closed position of the board
   //Can be called only if the game is not over
   method ToggleFlag(row: nat, col: nat)
+    requires Valid()
+    requires IsAlive()
+    requires IsPosition(row, col)
+    requires !IsOpen(row, col)
     modifies Repr
+    ensures Valid()
   {
     var r,c := row-1, col-1;
     flagged[r,c] := !flagged[r,c];
@@ -338,6 +375,8 @@ class Minesweeper {
   // and closed positions with ' '. If the game is over (won or lost),
   // the bombs are shown with '*'.
   method BoardToString() returns (s: string)
+    requires Valid()
+    ensures s != ""
   {
     s := "";
     var showBombs := (state != ONGOING); // show bombs when finished
@@ -396,7 +435,12 @@ method Main ()
   var i := 0;
   while i < |inputAct| && i < |inputPos| && board.IsAlive() && !board.Won() 
     invariant board.Repr == old@loopStart(board.Repr)
-    //TOCOMPLETE with other invariants 
+    //TOCOMPLETE with other invariants
+    invariant board.Valid()
+    invariant board.Columns() == 3
+    invariant board.Lines() == 3
+    invariant board.NumberOfMines() == 2
+    invariant board.IsAlive() ==> board.ExistsPositionToOpen() || board.Won() 
   {
     // get input
     if i < |inputAct| && i < |inputPos| {

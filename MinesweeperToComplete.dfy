@@ -44,7 +44,7 @@
   ---------------------------------------------------------------------------
 
    Instructor: Antonia Lopes
-   Student: TO COMPLETE
+   Student: Pedro Rosa nº60294
 */
 
 /********************************************************************************* 
@@ -135,41 +135,43 @@ class Minesweeper {
     reads this, Repr 
   {
     this in Repr && this.revealed in Repr && this.flagged in Repr && this.field in Repr 
-    //COMPLETE ME 
+    //COMPLETE ME
+    
+
   }
 
   /** The observers of Minesweeper objects **/
 
   // Number of columns of the board
   function Columns(): nat
-    reads Repr
+    reads this,Repr
   {
     this.width
   }
 
   // Number of lines of the board
   function Lines(): nat
-    reads Repr
+    reads this,Repr
   {
     this.height
   }
   // Whether the game is still ongoing or the player has won orlost
   predicate IsAlive()
-    reads Repr
+    reads this,Repr
   {
     this.state == ONGOING || this.state == WON
   }
 
   // Whether the player has won the game
   predicate Won()
-    reads Repr
+    reads this,Repr
   {
     this.state == WON
   }
 
   // Number of mines on the field
   function NumberOfMines(): nat
-    reads Repr
+    reads this,Repr
   {
     numMines
   }
@@ -183,14 +185,19 @@ class Minesweeper {
 
   // Whether the position of the board is open
   predicate IsOpen(row: nat, col: nat)
-    reads Repr
+    reads this,Repr,revealed
+    requires row < revealed.Length0
+    requires col < revealed.Length1
+
   {
     revealed[row-1,col-1]
   }
 
   // Whether a closed position of the board is flagged
   predicate IsFlagged(row: nat, col: nat)
-    reads Repr
+    reads this,Repr,flagged
+    requires row < flagged.Length0
+    requires col < flagged.Length1
   {
     flagged[row-1,col-1]
   }
@@ -199,7 +206,9 @@ class Minesweeper {
   // It is only valid to call this predicate 
   // if the position is open or the game is won
   predicate HasMine(row: nat, col: nat)
-    reads Repr
+    reads this,Repr,field
+    requires row < field.Length0
+    requires col < field.Length1
   {
     field[row-1,col-1]
   }
@@ -207,7 +216,7 @@ class Minesweeper {
   // Whether there exists a position of the board without a mine
   // that is still not opened 
   predicate ExistsPositionToOpen()
-    reads Repr
+    reads this,Repr,field
   {
     exists i,j :: 0 <= i < height && 0 <= j < width && !field[i,j] && !revealed[i,j]
   }

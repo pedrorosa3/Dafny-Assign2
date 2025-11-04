@@ -132,26 +132,34 @@ class Minesweeper {
 
   // The class invariant
   ghost predicate Valid()
-    reads this, Repr 
+    reads this, Repr
   {
-    this in Repr && this.revealed in Repr && this.flagged in Repr && this.field in Repr 
-    //COMPLETE ME
-    // dims coerentes
-    && Columns() > 1 && Lines() > 1
-    // número de minas coerente com as dimensões
-    && 0 < NumberOfMines() < Columns() * Lines()
-      
-    // todos os observers bem-definidos: se IsOpen/IsFlagged/HasMine são chamados, a posição é válida
-    && (forall r,c :: IsOpen(r,c) ==> IsPosition(r,c))
-    && (forall r,c :: IsFlagged(r,c) ==> IsPosition(r,c))
-    && (forall r,c :: HasMine(r,c) ==> IsPosition(r,c))
+    // Objetos representados
+    this in Repr && revealed in Repr && flagged in Repr && field in Repr &&
 
-    // se o jogo está WON então não existe posição sem mina que esteja fechada
-    && (Won() ==> !ExistsPositionToOpen())
+    // Dimensões válidas – usando apenas observers
+    Columns() > 1 && Lines() > 1 &&
+    0 < NumberOfMines() < Columns() * Lines() &&
 
-    // se o jogo está alive então ou existe posição para abrir ou já ganhou (redundante com IsAlive def)
-    && (IsAlive() ==> ExistsPositionToOpen() || Won())
+    // Arrays internas coerentes com dimensões lógicas
+    revealed.Length0 == Lines() &&
+    flagged.Length0 == Lines() &&
+    field.Length0 == Lines() &&
+    (forall i :: 0 <= i < Lines() ==>
+        revealed.Length1 == Columns() &&
+        flagged.Length1 == Columns() &&
+        field.Length1 == Columns()) &&
+
+    // Todas as coordenadas internas correspondem a posições válidas
+    (forall r,c :: 0 <= r < Lines() && 0 <= c < Columns() ==> IsPosition(r+1, c+1)) &&
+
+    // Se ganhou o jogo não há posições sem abrir
+    (Won() ==> !ExistsPositionToOpen()) &&
+
+    // Se está vivo, ou ainda há posições para abrir ou ganhou
+    (IsAlive() ==> ExistsPositionToOpen() || Won())
   }
+
 
   /** The observers of Minesweeper objects **/
 
@@ -232,9 +240,13 @@ class Minesweeper {
   // Whether there exists a position of the board without a mine
   // that is still not opened 
   predicate ExistsPositionToOpen()
-    reads this,Repr,field
+    reads Repr
   {
-    exists i,j :: 0 <= i < height && 0 <= j < width && !field[i,j] && !revealed[i,j]
+    exists r: nat, c: nat ::
+      1 <= r <= Lines() &&
+      1 <= c <= Columns() &&
+      !HasMine(r, c) &&
+      !IsOpen(r, c)
   }
 
   // The rank of an open position of the board 
@@ -265,7 +277,7 @@ class Minesweeper {
   /** The constructor of a Minesweeper object **/
 
   constructor(w: nat, h: nat, m: nat)
-    
+
     requires w > 1 && h > 1 && 0 < m < w * h
     ensures fresh(Repr)
     ensures Valid()
@@ -283,7 +295,7 @@ class Minesweeper {
     flagged := new bool[h,w];
     state := ONGOING;
     Repr := {this, flagged, revealed, field};
-    new;
+    new;  
 
     // place mines using the provided function GetMineLocations
     forall i,j | 0 <= i < height && 0 <= j < width {
@@ -309,6 +321,9 @@ class Minesweeper {
     assert minePositions == (set e:Position | e in GetMineLocations(width,height,m));
     assert minePositions == GetMineLocations(width,height,m);
     assert |minePositions| == m;
+    // Since not all cells have mines, there exists one that can be opened
+    //assert ExistsPositionToOpen();
+    assert Valid();
   }
 
   /** The modifiers of an object Minesweeper **/

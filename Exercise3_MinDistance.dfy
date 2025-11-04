@@ -7,7 +7,6 @@ module Assignment2_Ex3 {
 
   method MinDistance(a: array<int>, b: array<int>)
     returns (d: nat, iMin: int, jMin: int)
-    requires a != null && b != null
     requires a.Length > 0 && b.Length > 0
     requires forall i,j :: 0 <= i < j < a.Length ==> a[i] <= a[j]
     requires forall k,l :: 0 <= k < l < b.Length ==> b[k] <= b[l]

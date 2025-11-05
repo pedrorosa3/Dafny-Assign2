@@ -142,6 +142,8 @@ class Minesweeper {
     && revealed.Length0 == height && revealed.Length1 == width
     && flagged.Length0 == height && flagged.Length1 == width
     && (state == WON || state == LOST || state == ONGOING)
+    //&& height > 0 && width > 0 ==> forall row, col :: 0 <= row < height && 0 <= col < width 
+        // ==> (field[row,col] == true || field[row,col] == false)
 
   }
 
@@ -150,6 +152,7 @@ class Minesweeper {
   // Number of columns of the board
   function Columns(): nat
     reads Repr
+    requires Valid()
   {
     this.width
   }
@@ -157,12 +160,14 @@ class Minesweeper {
   // Number of lines of the board
   function Lines(): nat
     reads Repr
+    requires Valid()
   {
     this.height
   }
   // Whether the game is still ongoing or the player has won orlost
   predicate IsAlive()
     reads Repr
+    requires Valid()
   {
     this.state == ONGOING || this.state == WON
   }
@@ -170,6 +175,7 @@ class Minesweeper {
   // Whether the player has won the game
   predicate Won()
     reads Repr
+    requires Valid()
   {
     this.state == WON
   }
@@ -177,6 +183,7 @@ class Minesweeper {
   // Number of mines on the field
   function NumberOfMines(): nat
     reads Repr
+    requires Valid()
   {
     numMines
   }
@@ -191,6 +198,8 @@ class Minesweeper {
   // Whether the position of the board is open
   predicate IsOpen(row: nat, col: nat)
     reads Repr
+    requires Valid()
+    requires IsPosition(row, col)
   {
     revealed[row-1,col-1]
   }
@@ -198,6 +207,8 @@ class Minesweeper {
   // Whether a closed position of the board is flagged
   predicate IsFlagged(row: nat, col: nat)
     reads Repr
+    requires Valid()
+    requires IsPosition(row, col)
   {
     flagged[row-1,col-1]
   }
@@ -207,6 +218,8 @@ class Minesweeper {
   // if the position is open or the game is won
   predicate HasMine(row: nat, col: nat)
     reads Repr
+    requires Valid()
+    requires IsPosition(row, col)    
   {
     field[row-1,col-1]
   }
@@ -215,6 +228,8 @@ class Minesweeper {
   // that is still not opened 
   predicate ExistsPositionToOpen()
     reads Repr
+    requires Valid()
+  
   {
     exists i,j :: 0 <= i < height && 0 <= j < width && !field[i,j] && !revealed[i,j]
   }
@@ -222,6 +237,10 @@ class Minesweeper {
   // The rank of an open position of the board 
   // (number of mines in the neighbouring positions)
   method GetRank(row: nat, col: nat) returns (cnt: nat)
+    requires Valid()
+    requires IsPosition(row, col)
+    requires IsOpen(row,col) || Won()
+    //ensures 0 <= cnt <= 8
   {
     cnt := 0;
     // count neighbouring bombs
@@ -229,6 +248,9 @@ class Minesweeper {
     var imax := if row + 1 >= height then height - 2 else row;
     var jmin := if col == 1 then 0 else col - 2;
     var jmax := if col + 1 >= width then width - 2 else col;
+
+    //assert imax - imin <= 2;
+    //assert jmax - jmin <= 2;
     for i := imin to imax+1
       invariant imin <= i <= imax + 1
       invariant cnt <= (i - imin) * (jmax - jmin + 1)

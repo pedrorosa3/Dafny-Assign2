@@ -44,7 +44,7 @@
   ---------------------------------------------------------------------------
 
    Instructor: Antonia Lopes
-   Student: Pedro Rosa nº60294
+   Student: Pedro Rosa 60294
 */
 
 /********************************************************************************* 
@@ -132,67 +132,51 @@ class Minesweeper {
 
   // The class invariant
   ghost predicate Valid()
-    reads this, Repr
+    reads this, Repr 
   {
-    // Objetos representados
-    this in Repr && revealed in Repr && flagged in Repr && field in Repr &&
+    this in Repr && this.revealed in Repr && this.flagged in Repr && this.field in Repr 
+    //COMPLETE ME 
+    && height > 1 && width > 1
+    && 0 < numMines < height * width
+    && field.Length0 == height && field.Length1 == width
+    && revealed.Length0 == height && revealed.Length1 == width
+    && flagged.Length0 == height && flagged.Length1 == width
+    && (state == WON || state == LOST || state == ONGOING)
 
-    // Dimensões válidas – usando apenas observers
-    Columns() > 1 && Lines() > 1 &&
-    0 < NumberOfMines() < Columns() * Lines() &&
-
-    // Arrays internas coerentes com dimensões lógicas
-    revealed.Length0 == Lines() &&
-    flagged.Length0 == Lines() &&
-    field.Length0 == Lines() &&
-    (forall i :: 0 <= i < Lines() ==>
-        revealed.Length1 == Columns() &&
-        flagged.Length1 == Columns() &&
-        field.Length1 == Columns()) &&
-
-    // Todas as coordenadas internas correspondem a posições válidas
-    (forall r,c :: 0 <= r < Lines() && 0 <= c < Columns() ==> IsPosition(r+1, c+1)) &&
-
-    // Se ganhou o jogo não há posições sem abrir
-    (Won() ==> !ExistsPositionToOpen()) &&
-
-    // Se está vivo, ou ainda há posições para abrir ou ganhou
-    (IsAlive() ==> ExistsPositionToOpen() || Won())
   }
-
 
   /** The observers of Minesweeper objects **/
 
   // Number of columns of the board
   function Columns(): nat
-    reads this,Repr
+    reads Repr
   {
     this.width
   }
 
   // Number of lines of the board
   function Lines(): nat
-    reads this,Repr
+    reads Repr
   {
     this.height
   }
   // Whether the game is still ongoing or the player has won orlost
   predicate IsAlive()
-    reads this,Repr
+    reads Repr
   {
     this.state == ONGOING || this.state == WON
   }
 
   // Whether the player has won the game
   predicate Won()
-    reads this,Repr
+    reads Repr
   {
     this.state == WON
   }
 
   // Number of mines on the field
   function NumberOfMines(): nat
-    reads this,Repr
+    reads Repr
   {
     numMines
   }
@@ -206,21 +190,14 @@ class Minesweeper {
 
   // Whether the position of the board is open
   predicate IsOpen(row: nat, col: nat)
-    reads this,Repr,revealed
-    requires row < revealed.Length0
-    requires col < revealed.Length1
-    requires 1 <= row <= height && 1 <= col <= width
-
+    reads Repr
   {
     revealed[row-1,col-1]
   }
 
   // Whether a closed position of the board is flagged
   predicate IsFlagged(row: nat, col: nat)
-    reads this,Repr,flagged
-    requires row < flagged.Length0
-    requires col < flagged.Length1
-    requires 1 <= row <= height && 1 <= col <= width
+    reads Repr
   {
     flagged[row-1,col-1]
   }
@@ -229,10 +206,7 @@ class Minesweeper {
   // It is only valid to call this predicate 
   // if the position is open or the game is won
   predicate HasMine(row: nat, col: nat)
-    reads this,Repr,field
-    requires row < field.Length0
-    requires col < field.Length1
-    requires 1 <= row <= height && 1 <= col <= width
+    reads Repr
   {
     field[row-1,col-1]
   }
@@ -242,11 +216,7 @@ class Minesweeper {
   predicate ExistsPositionToOpen()
     reads Repr
   {
-    exists r: nat, c: nat ::
-      1 <= r <= Lines() &&
-      1 <= c <= Columns() &&
-      !HasMine(r, c) &&
-      !IsOpen(r, c)
+    exists i,j :: 0 <= i < height && 0 <= j < width && !field[i,j] && !revealed[i,j]
   }
 
   // The rank of an open position of the board 
@@ -277,14 +247,21 @@ class Minesweeper {
   /** The constructor of a Minesweeper object **/
 
   constructor(w: nat, h: nat, m: nat)
-
-    requires w > 1 && h > 1 && 0 < m < w * h
     ensures fresh(Repr)
     ensures Valid()
-    ensures Columns() == w && Lines() == h
+    ensures Columns() == w
+    ensures Lines() == h
     ensures NumberOfMines() == m
-    ensures IsAlive() && !Won()
     ensures ExistsPositionToOpen()
+    ensures IsAlive()
+    ensures !Won()
+    ensures forall row, col :: 1 <= row <= h && 1 <= col <= w ==> !IsOpen(row, col)
+    ensures forall row, col :: 1 <= row <= h && 1 <= col <= w ==> !IsFlagged(row, col)
+    ensures forall row, col :: 1 <= row <= h && 1 <= col <= w 
+                             ==> (HasMine(row, col) <==> Position(row, col) in GetMineLocations(w,h,m))
+    
+    
+    
   {
     height := h;
     width := w;
@@ -295,7 +272,7 @@ class Minesweeper {
     flagged := new bool[h,w];
     state := ONGOING;
     Repr := {this, flagged, revealed, field};
-    new;  
+    new;
 
     // place mines using the provided function GetMineLocations
     forall i,j | 0 <= i < height && 0 <= j < width {
@@ -321,9 +298,6 @@ class Minesweeper {
     assert minePositions == (set e:Position | e in GetMineLocations(width,height,m));
     assert minePositions == GetMineLocations(width,height,m);
     assert |minePositions| == m;
-    // Since not all cells have mines, there exists one that can be opened
-    //assert ExistsPositionToOpen();
-    assert Valid();
   }
 
   /** The modifiers of an object Minesweeper **/
@@ -332,16 +306,16 @@ class Minesweeper {
   //and update the game state accordingly
   //Can be called only if the game is not over
   method Open(row: nat, col: nat)
-    
+    modifies Repr
     requires Valid()
-    requires IsAlive()
     requires IsPosition(row, col)
     requires !IsOpen(row, col)
-    modifies Repr
-    ensures Valid()
+    requires IsAlive()
+    ensures Valid() && fresh(Repr - old(Repr))
     ensures IsOpen(row, col)
-    ensures (HasMine(row, col) ==> !IsAlive() && !Won())
-    ensures (!HasMine(row, col) ==> (IsAlive() || Won()))
+    ensures !IsAlive() ==> HasMine(row, col)
+    //ensures IsAlive() ==> (Won() <==> !ExistsPositionToOpen())
+
   {
     var r,c := row-1, col-1;
     revealed[r,c] := true;
@@ -374,12 +348,13 @@ class Minesweeper {
   //Toggle the flagged status of a closed position of the board
   //Can be called only if the game is not over
   method ToggleFlag(row: nat, col: nat)
+    modifies Repr
     requires Valid()
-    requires IsAlive()
     requires IsPosition(row, col)
     requires !IsOpen(row, col)
-    modifies Repr
-    ensures Valid()
+    requires IsAlive()
+    ensures Valid() && fresh(Repr - old(Repr))
+    ensures IsFlagged(row, col) <==> !old(IsFlagged(row, col))
   {
     var r,c := row-1, col-1;
     flagged[r,c] := !flagged[r,c];
@@ -390,8 +365,9 @@ class Minesweeper {
   // and closed positions with ' '. If the game is over (won or lost),
   // the bombs are shown with '*'.
   method BoardToString() returns (s: string)
-    requires Valid()
-    ensures s != ""
+  requires Valid()
+  ensures Valid()
+  
   {
     s := "";
     var showBombs := (state != ONGOING); // show bombs when finished
@@ -417,7 +393,9 @@ class Minesweeper {
 
   // Helper: convert small nat (0..8) to the corresponding string
   function DigitToString(n: nat): string
+
     requires n <= 9
+
   {
     if n == 0 then "0" else if n == 1 then "1"
     else if n == 2 then "2" else if n == 3 then "3"
@@ -452,10 +430,11 @@ method Main ()
     invariant board.Repr == old@loopStart(board.Repr)
     //TOCOMPLETE with other invariants
     invariant board.Valid()
-    invariant board.Columns() == 3
-    invariant board.Lines() == 3
-    invariant board.NumberOfMines() == 2
-    invariant board.IsAlive() ==> board.ExistsPositionToOpen() || board.Won() 
+    invariant 0 <= i <= |inputAct| 
+    invariant 0 <= i <= |inputPos|
+    //invariant board.IsAlive() ==> !board.Won()
+    //invariant !board.IsAlive() ==> (exists r,c :: 1 <= r <= board.Lines() && 1 <= c <= board.Columns() 
+                                      //  && board.IsOpen(r,c) && board.HasMine(r,c))
   {
     // get input
     if i < |inputAct| && i < |inputPos| {

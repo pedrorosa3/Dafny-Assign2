@@ -240,7 +240,12 @@ class Minesweeper {
     requires Valid()
     requires IsPosition(row, col)
     requires IsOpen(row,col) || Won()
-    //ensures 0 <= cnt <= 8
+    ensures Valid()
+    ensures IsPosition(row, col)
+    ensures IsOpen(row,col) || Won()
+    //ensures cnt >= 0
+
+    ensures 0 <= cnt <= 9
   {
     cnt := 0;
     // count neighbouring bombs
@@ -388,7 +393,9 @@ class Minesweeper {
   // the bombs are shown with '*'.
   method BoardToString() returns (s: string)
   requires Valid()
+
   ensures Valid()
+  
   
   {
     s := "";
@@ -415,7 +422,6 @@ class Minesweeper {
 
   // Helper: convert small nat (0..8) to the corresponding string
   function DigitToString(n: nat): string
-
     requires n <= 9
 
   {

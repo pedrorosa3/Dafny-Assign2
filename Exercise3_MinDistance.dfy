@@ -103,7 +103,7 @@ module Assignment2_Ex3 {
 
     var d, i, j := MinDistance(a, b);
 
-
+    assert a[1] == 5 && b[0] == 4; // para dar "trigger aos exits"
     assert d == 1;         // 5 - 4 = 1
     assert i == 1;         // índice da posição 5 em a
     assert j == 0;         // índice da posição 4 em b
@@ -120,6 +120,7 @@ module Assignment2_Ex3 {
 
     var d, i, j := MinDistance(a, b);
 
+    assert a[1] == 5 && b[0] == 5; // para dar "trigger aos exits"
     assert d == 0;        // existe valor igual em ambos
     assert a[i] == b[j];  // prova da igualdade
   }
@@ -134,10 +135,8 @@ module Assignment2_Ex3 {
     b[0] := -3; b[1] := 2; b[2] := 20;
 
     var d, i, j := MinDistance(a, b);
-
-    assert d == 3;     // diferença mínima: |-5 - (-3)| = 2
-                       // mas |-10 - (-3)| = 7, |0 - 2| = 2
-                       // ✅ na verdade a diferença mínima é 2
+    //assert a[1] == -5 && b[0] == -3; // para dar "trigger aos exits"
+    assert d == 2;     // diferença mínima: |-5 - (-3)| = 2
   }
 
 
@@ -165,7 +164,7 @@ module Assignment2_Ex3 {
     b[0] := 25; b[1] := 75; b[2] := 80; b[3] := 90;
 
     var d, i, j := MinDistance(a, b);
-
-    assert d == 25;       // diferença mínima é |50 - 25|
+    //assert a[1] == 50 && b[0] == 25; // para dar "trigger aos exits"
+    assert d == 10;       // diferença mínima é |50 - 40|
   }
 }

@@ -274,6 +274,8 @@ class Minesweeper {
   /** The constructor of a Minesweeper object **/
 
   constructor(w: nat, h: nat, m: nat)
+    requires w > 1 && h > 1
+    requires 0 < m < w * h
     ensures fresh(Repr)
     ensures Valid()
     ensures Columns() == w

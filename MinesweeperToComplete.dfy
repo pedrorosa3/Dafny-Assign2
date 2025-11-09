@@ -142,9 +142,6 @@ class Minesweeper {
     && revealed.Length0 == height && revealed.Length1 == width
     && flagged.Length0 == height && flagged.Length1 == width
     && (state == WON || state == LOST || state == ONGOING)
-    //&& height > 0 && width > 0 ==> forall row, col :: 0 <= row < height && 0 <= col < width 
-        // ==> (field[row,col] == true || field[row,col] == false)
-
   }
 
   /** The observers of Minesweeper objects **/
@@ -254,9 +251,6 @@ class Minesweeper {
     var imax := if row + 1 >= height then height - 2 else row;
     var jmin := if col == 1 then 0 else col - 2;
     var jmax := if col + 1 >= width then width - 2 else col;
-
-    //assert imax - imin <= 2;
-    //assert jmax - jmin <= 2;
     for i := imin to imax+1
       invariant imin <= i <= imax + 1
       invariant cnt <= (i - imin) * (jmax - jmin + 1)
@@ -289,9 +283,8 @@ class Minesweeper {
     ensures forall row, col :: 1 <= row <= h && 1 <= col <= w ==> !IsFlagged(row, col)
     ensures forall row, col :: 1 <= row <= h && 1 <= col <= w 
                              ==> (HasMine(row, col) <==> Position(row, col) in GetMineLocations(w,h,m))
-    
-    
-    
+
+  
   {
     height := h;
     width := w;
@@ -338,34 +331,21 @@ class Minesweeper {
   method Open(row: nat, col: nat)
     modifies Repr
     requires Valid()
-    requires row >= 1 && row <= Lines()
-    requires col >= 1 && col <= Columns()
-    requires height >= 1 && width >= 1
     requires IsPosition(row, col)
     requires !IsOpen(row, col)
     requires IsAlive()
     ensures Valid() && fresh(Repr - old(Repr))
     ensures IsOpen(row, col)
+    ensures HasMine(row, col) ==> !IsAlive()
+    ensures IsOpen(row, col)
+    ensures HasMine(row, col) ==> !IsAlive()
     ensures !IsAlive() ==> HasMine(row, col)
-    //ensures IsAlive() ==> (Won() <==> !ExistsPositionToOpen())
     ensures forall r,c :: IsPosition(r,c) && !(r == row && c == col) ==> IsOpen(r,c) == old(IsOpen(r,c))
     ensures !IsAlive() ==> !IsAlive() && !Won()
     ensures old(Repr) == Repr
     ensures forall r, c :: IsPosition(r, c) && !(r == row && c == col)
                      ==> IsFlagged(r, c) == old(IsFlagged(r, c))
-    
     ensures HasMine(row, col) ==> !IsAlive() && !Won()
-
-    ensures IsAlive() ==> (!Won() ==> ExistsPositionToOpen())
-    ensures Won() ==> !IsAlive()
-    ensures !HasMine(row, col) ==> (!Won() ==> ExistsPositionToOpen())
-    ensures Won() ==> !ExistsPositionToOpen()
-    //ensures IsAlive() && !Won() ==> ExistsPositionToOpen()
-    //ensures IsAlive() ==> Won() == !ExistsPositionToOpen()
-    //ensures Won() ==> !IsAlive()
-
-
-
   {
     var r,c := row-1, col-1;
     revealed[r,c] := true;
@@ -379,15 +359,10 @@ class Minesweeper {
       i := 0;
       while allRevealed && i < height 
         invariant 0 <= i <= height
-        //invariant forall r,c :: IsPosition(r,c) && !(r == row && c == col) ==> IsOpen(r,c) == old(IsOpen(r,c))
+        invariant forall r,c :: IsPosition(r,c) && !(r == row && c == col) ==> IsOpen(r,c) == old(IsOpen(r,c))
         invariant 0 <= i <= Lines()
-        //invariant forall rr, cc :: 1 <= rr <= i && 1 <= cc <= Columns() ==>
-                    //IsOpen(rr, cc) == old(IsOpen(rr, cc))
-        //invariant 0 <= j <= Columns()
-        //invariant forall rr: nat, cc: nat ::
-            //1 <= rr <= i && 1 <= cc <= Columns() ==>
-            //IsOpen(rr, cc) == old(IsOpen(rr, cc))
-        //invariant forall r,c :: IsPosition(r,c) && !(r == row && c == col) ==> revealed[r-1,c-1] == old(revealed[r-1,c-1])
+        invariant forall r,c :: IsPosition(r,c) && !(r == row && c == col) ==> IsOpen(r,c) == old(IsOpen(r,c))
+
       {
          j := 0;
          while allRevealed && j < width 
@@ -395,17 +370,7 @@ class Minesweeper {
             invariant 0 <= i <= height
             invariant 0 <= i <= Lines()
             invariant 0 <= j <= Columns()
-            //invariant forall cc :: 1 <= cc <= j ==> IsOpen(i+1, cc) == old(IsOpen(i+1, cc))
-
-            // todas as linhas completas anteriores a i mantêm isOpen como em old
-            //invariant forall rr: nat, cc: nat ::
-                //1 <= rr <= i && 1 <= cc <= Columns() ==>
-                //IsOpen(rr, cc) == old(IsOpen(rr, cc))
-            // na linha i (índice 0-based), todas as colunas anteriores a j mantêm-se
-            //invariant forall cc: nat ::
-                //1 <= cc <= j ==>
-                //IsOpen(i+1, cc) == old(IsOpen(i+1, cc))
-
+            invariant forall r,c :: IsPosition(r,c) && !(r == row && c == col) ==> IsOpen(r,c) == old(IsOpen(r,c))
           {
            if !field[i,j] && !revealed[i,j] {
              allRevealed := false;
@@ -433,7 +398,6 @@ class Minesweeper {
     ensures old(Repr) == Repr
     ensures forall r, c :: IsPosition(r, c) && !(r == row && c == col)
                      ==> IsFlagged(r, c) == old(IsFlagged(r, c))
-
   {
     var r,c := row-1, col-1;
     flagged[r,c] := !flagged[r,c];
@@ -445,10 +409,7 @@ class Minesweeper {
   // the bombs are shown with '*'.
   method BoardToString() returns (s: string)
   requires Valid()
-
   ensures Valid()
-  
-  
   {
     s := "";
     var showBombs := (state != ONGOING); // show bombs when finished
@@ -508,14 +469,9 @@ method Main ()
   var i := 0;
   while i < |inputAct| && i < |inputPos| && board.IsAlive() && !board.Won() 
     invariant board.Repr == old@loopStart(board.Repr)
-    //TOCOMPLETE with other invariants
-    //invariant old@loopStart(board.Repr) <= board.Repr
     invariant board.Valid()
     invariant 0 <= i <= |inputAct| 
     invariant 0 <= i <= |inputPos|
-    //invariant board.IsAlive() ==> !board.Won()
-    //invariant !board.IsAlive() ==> (exists r,c :: 1 <= r <= board.Lines() && 1 <= c <= board.Columns() 
-                                      //  && board.IsOpen(r,c) && board.HasMine(r,c))
   {
     // get input
     if i < |inputAct| && i < |inputPos| {

@@ -355,18 +355,13 @@ class Minesweeper {
       var i,j;
       i := 0;
       while allRevealed && i < height 
-        invariant 0 <= i <= height
-        invariant forall r,c :: IsPosition(r,c) && !(r == row && c == col) ==> IsOpen(r,c) == old(IsOpen(r,c))
         invariant 0 <= i <= Lines()
-        invariant forall r,c :: IsPosition(r,c) && !(r == row && c == col) ==> IsOpen(r,c) == old(IsOpen(r,c))
-
+        invariant forall rr,c :: IsPosition(rr,c) && !(rr == row && c == col) ==> IsOpen(rr,c) == old(IsOpen(rr,c))
       {
          j := 0;
          while allRevealed && j < width 
-            invariant 0 <= j <= width
-            invariant 0 <= i <= height
-            invariant 0 <= i <= Lines()
             invariant 0 <= j <= Columns()
+            invariant 0 <= i <= Lines()
             invariant forall r,c :: IsPosition(r,c) && !(r == row && c == col) ==> IsOpen(r,c) == old(IsOpen(r,c))
           {
            if !field[i,j] && !revealed[i,j] {

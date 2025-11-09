@@ -335,17 +335,14 @@ class Minesweeper {
     requires !IsOpen(row, col)
     requires IsAlive()
     ensures Valid() && fresh(Repr - old(Repr))
+    ensures HasMine(row, col) ==> !IsAlive() && !Won()
     ensures IsOpen(row, col)
-    ensures HasMine(row, col) ==> !IsAlive()
-    ensures IsOpen(row, col)
-    ensures HasMine(row, col) ==> !IsAlive()
     ensures !IsAlive() ==> HasMine(row, col)
     ensures forall r,c :: IsPosition(r,c) && !(r == row && c == col) ==> IsOpen(r,c) == old(IsOpen(r,c))
     ensures !IsAlive() ==> !IsAlive() && !Won()
     ensures old(Repr) == Repr
     ensures forall r, c :: IsPosition(r, c) && !(r == row && c == col)
                      ==> IsFlagged(r, c) == old(IsFlagged(r, c))
-    ensures HasMine(row, col) ==> !IsAlive() && !Won()
   {
     var r,c := row-1, col-1;
     revealed[r,c] := true;

@@ -283,8 +283,7 @@ class Minesweeper {
     ensures forall row, col :: 1 <= row <= h && 1 <= col <= w ==> !IsFlagged(row, col)
     ensures forall row, col :: 1 <= row <= h && 1 <= col <= w 
                              ==> (HasMine(row, col) <==> Position(row, col) in GetMineLocations(w,h,m))
-
-  
+    //ensures ExistsPositionToOpen()
   {
     height := h;
     width := w;
@@ -343,6 +342,14 @@ class Minesweeper {
     ensures old(Repr) == Repr
     ensures forall r, c :: IsPosition(r, c) && !(r == row && c == col)
                      ==> IsFlagged(r, c) == old(IsFlagged(r, c))
+    ensures HasMine(row, col) ==> !IsAlive() && !Won()
+    //ensures (!HasMine(row, col) && IsAlive() && !Won()) ==> ExistsPositionToOpen()
+    ensures forall r,c :: IsPosition(r,c) && !(r == row && c == col)
+                     ==> IsOpen(r,c) == old(IsOpen(r,c))
+    //ensures IsAlive() ==> (!Won() ==> ExistsPositionToOpen())
+    //ensures Won() ==> !IsAlive()
+    //ensures !IsAlive() ==> !IsAlive() && !Won()
+
   {
     var r,c := row-1, col-1;
     revealed[r,c] := true;
@@ -357,12 +364,22 @@ class Minesweeper {
       while allRevealed && i < height 
         invariant 0 <= i <= Lines()
         invariant forall rr,c :: IsPosition(rr,c) && !(rr == row && c == col) ==> IsOpen(rr,c) == old(IsOpen(rr,c))
+        invariant forall r,c :: IsPosition(r,c) && !(r == row && c == col)
+                     ==> IsOpen(r,c) == old(IsOpen(r,c))
+        //invariant forall rr: nat, cc: nat ::
+          //i > 0 && 1 <= rr <= i && 1 <= cc <= Columns() ==>
+          //IsOpen(rr, cc) == old(IsOpen(rr, cc))
       {
          j := 0;
          while allRevealed && j < width 
             invariant 0 <= j <= Columns()
             invariant 0 <= i <= Lines()
             invariant forall r,c :: IsPosition(r,c) && !(r == row && c == col) ==> IsOpen(r,c) == old(IsOpen(r,c))
+            invariant forall r,c :: IsPosition(r,c) && !(r == row && c == col)
+                     ==> IsOpen(r,c) == old(IsOpen(r,c))
+            //invariant forall cc: nat ::
+              //j > 0 && 1 <= cc <= j ==>
+              //IsOpen(i+1, cc) == old(IsOpen(i+1, cc))
           {
            if !field[i,j] && !revealed[i,j] {
              allRevealed := false;
@@ -390,6 +407,7 @@ class Minesweeper {
     ensures old(Repr) == Repr
     ensures forall r, c :: IsPosition(r, c) && !(r == row && c == col)
                      ==> IsFlagged(r, c) == old(IsFlagged(r, c))
+
   {
     var r,c := row-1, col-1;
     flagged[r,c] := !flagged[r,c];

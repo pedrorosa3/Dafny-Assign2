@@ -226,6 +226,7 @@ class Minesweeper {
   predicate ExistsPositionToOpen()
     reads Repr
     requires Valid()
+     
   
   {
     exists i,j :: 0 <= i < height && 0 <= j < width && !field[i,j] && !revealed[i,j]
@@ -349,7 +350,9 @@ class Minesweeper {
     //ensures IsAlive() ==> (!Won() ==> ExistsPositionToOpen())
     //ensures Won() ==> !IsAlive()
     //ensures !IsAlive() ==> !IsAlive() && !Won()
-
+    
+    ensures IsAlive() ==> (!Won() ==> ExistsPositionToOpen())
+    ensures Won() ==> !ExistsPositionToOpen()
   {
     var r,c := row-1, col-1;
     revealed[r,c] := true;
@@ -362,6 +365,15 @@ class Minesweeper {
       var i,j;
       i := 0;
       while allRevealed && i < height 
+        invariant forall rr,cc :: IsPosition(rr,cc) && !(rr == row && cc == col) && !field[rr-1,cc-1] ==> revealed[rr-1,cc-1]
+        invariant allRevealed ==> (
+          forall rr, cc ::
+          0 <= rr < height && 0 <= cc < width ==>
+          field[rr,cc] || revealed[rr,cc])
+        //invariant allRevealed ==> (!Won() ==> !ExistsPositionToOpen())
+        //invariant allRevealed ==> forall r, c :: IsPosition(r, c) ==> IsOpen(r, c) || HasMine(r, c)
+        invariant forall rr,cc :: IsPosition(rr,cc) && !(rr == row && cc == col)
+                          ==> revealed[rr-1,cc-1] == old(revealed[rr-1,cc-1])
         invariant 0 <= i <= Lines()
         invariant forall rr,c :: IsPosition(rr,c) && !(rr == row && c == col) ==> IsOpen(rr,c) == old(IsOpen(rr,c))
         invariant forall r,c :: IsPosition(r,c) && !(r == row && c == col)
@@ -372,6 +384,11 @@ class Minesweeper {
       {
          j := 0;
          while allRevealed && j < width 
+            //invariant allRevealed ==> (!Won() ==> !ExistsPositionToOpen())
+            //invariant allRevealed ==> forall r, c :: IsPosition(r, c) ==> IsOpen(r, c) || HasMine(r, c)
+            invariant forall rr,cc :: IsPosition(rr,cc) && !(rr == row && cc == col)
+                          ==> revealed[rr-1,cc-1] == old(revealed[rr-1,cc-1])
+
             invariant 0 <= j <= Columns()
             invariant 0 <= i <= Lines()
             invariant forall r,c :: IsPosition(r,c) && !(r == row && c == col) ==> IsOpen(r,c) == old(IsOpen(r,c))

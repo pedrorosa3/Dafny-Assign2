@@ -165,6 +165,6 @@ module Assignment2_Ex3 {
 
     var d, i, j := MinDistance(a, b);
     //assert a[1] == 50 && b[0] == 25; // para dar "trigger aos exits"
-    assert d == 10;       // diferença mínima é |50 - 40|
+    assert d == 10;       // diferença mínima é |100 - 90|
   }
 }

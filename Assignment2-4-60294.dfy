@@ -100,8 +100,8 @@ lemma GetMineLocationsProperties(w: nat, h: nat, m: nat)
 // The proof of this lemma would require to much effort and is not the focus of the assignment,
 // so we just assume the required properties as axioms.
  assume {:axiom} |set i,j | 1 <= i <= h && 1 <= j <= w && (i - 1) * w + j <= m :: Position(i,j)| == m;
- assume {:axiom} exists i,j :: 1 <= i <= h && 1 <= j <= w 
-              && Position(i,j) !in (set i,j | 1 <= i <= h && 1 <= j <= w && (i - 1) * w + j <= m :: Position(i,j));
+ assume {:axiom} exists i,j :: (1 <= i <= h && 1 <= j <= w
+              && Position(i,j) !in (set i,j | 1 <= i <= h && 1 <= j <= w && (i - 1) * w + j <= m :: Position(i,j)));
 }
 
 
@@ -247,20 +247,19 @@ class Minesweeper {
     ensures 0 <= cnt <= 9
   {
     cnt := 0;
-    // count neighbouring bombs
-    var imin := if row == 1 then 0 else row - 2;
-    var imax := if row + 1 >= height then height - 2 else row;
-    var jmin := if col == 1 then 0 else col - 2;
-    var jmax := if col + 1 >= width then width - 2 else col;
-    for i := imin to imax+1
-      invariant imin <= i <= imax + 1
-      invariant cnt <= (i - imin) * (jmax - jmin + 1)
+    // count neighbouring bombs (0-based indices around (r,c))
+    var r, c := row - 1, col - 1;
+    var imin := if r == 0 then 0 else r - 1;
+    var imax := if r + 1 < height then r + 1 else r;
+    var jmin := if c == 0 then 0 else c - 1;
+    var jmax := if c + 1 < width then c + 1 else c;
+    for i := imin to imax + 1
+      invariant cnt <= 3 * (i - imin)
     {
-      for j := jmin to jmax+1
-        invariant jmin <= j <= jmax + 1
-        invariant cnt <= (i - imin) * (jmax - jmin + 1) + (j - jmin)
+      for j := jmin to jmax + 1
+        invariant cnt <= 3 * (i - imin) + (j - jmin)
       {
-        if (i != row || j != col) && field[i,j] {
+        if (i != r || j != c) && field[i,j] {
           cnt := cnt + 1;
         }
       }
@@ -360,54 +359,37 @@ class Minesweeper {
       state := LOST;
     }
     else {
-      // check if won
+      // check if won: every position without a mine must be open
       var allRevealed := true;
-      var i,j;
-      i := 0;
-      while allRevealed && i < height 
-        invariant forall rr,cc :: IsPosition(rr,cc) && !(rr == row && cc == col) && !field[rr-1,cc-1] ==> revealed[rr-1,cc-1]
-        invariant allRevealed ==> (
-          forall rr, cc ::
-          0 <= rr < height && 0 <= cc < width ==>
-          field[rr,cc] || revealed[rr,cc])
-        //invariant allRevealed ==> (!Won() ==> !ExistsPositionToOpen())
-        //invariant allRevealed ==> forall r, c :: IsPosition(r, c) ==> IsOpen(r, c) || HasMine(r, c)
-        invariant forall rr,cc :: IsPosition(rr,cc) && !(rr == row && cc == col)
-                          ==> revealed[rr-1,cc-1] == old(revealed[rr-1,cc-1])
-        invariant 0 <= i <= Lines()
-        invariant forall rr,c :: IsPosition(rr,c) && !(rr == row && c == col) ==> IsOpen(rr,c) == old(IsOpen(rr,c))
-        invariant forall r,c :: IsPosition(r,c) && !(r == row && c == col)
-                     ==> IsOpen(r,c) == old(IsOpen(r,c))
-        //invariant forall rr: nat, cc: nat ::
-          //i > 0 && 1 <= rr <= i && 1 <= cc <= Columns() ==>
-          //IsOpen(rr, cc) == old(IsOpen(rr, cc))
+      // ghost witness of a closed position without a mine (when !allRevealed)
+      ghost var wi: int, wj: int := 0, 0;
+      var i := 0;
+      while i < height && allRevealed
+        invariant 0 <= i <= height
+        invariant allRevealed ==>
+          forall ii, jj :: 0 <= ii < i && 0 <= jj < width ==> field[ii,jj] || revealed[ii,jj]
+        invariant !allRevealed ==>
+          0 <= wi < height && 0 <= wj < width && !field[wi,wj] && !revealed[wi,wj]
       {
-         j := 0;
-         while allRevealed && j < width 
-            //invariant allRevealed ==> (!Won() ==> !ExistsPositionToOpen())
-            //invariant allRevealed ==> forall r, c :: IsPosition(r, c) ==> IsOpen(r, c) || HasMine(r, c)
-            invariant forall rr,cc :: IsPosition(rr,cc) && !(rr == row && cc == col)
-                          ==> revealed[rr-1,cc-1] == old(revealed[rr-1,cc-1])
-
-            invariant 0 <= j <= Columns()
-            invariant 0 <= i <= Lines()
-            invariant forall r,c :: IsPosition(r,c) && !(r == row && c == col) ==> IsOpen(r,c) == old(IsOpen(r,c))
-            invariant forall r,c :: IsPosition(r,c) && !(r == row && c == col)
-                     ==> IsOpen(r,c) == old(IsOpen(r,c))
-            //invariant forall cc: nat ::
-              //j > 0 && 1 <= cc <= j ==>
-              //IsOpen(i+1, cc) == old(IsOpen(i+1, cc))
-          {
-           if !field[i,j] && !revealed[i,j] {
-             allRevealed := false;
-           }
-           j := j + 1;
-         }
-         i := i + 1;
+        var j := 0;
+        while j < width && allRevealed
+          invariant 0 <= j <= width
+          invariant allRevealed ==>
+            forall ii, jj :: 0 <= ii < i && 0 <= jj < width ==> field[ii,jj] || revealed[ii,jj]
+          invariant allRevealed ==>
+            forall jj :: 0 <= jj < j ==> field[i,jj] || revealed[i,jj]
+          invariant !allRevealed ==>
+            0 <= wi < height && 0 <= wj < width && !field[wi,wj] && !revealed[wi,wj]
+        {
+          if !field[i,j] && !revealed[i,j] {
+            allRevealed := false;
+            wi, wj := i, j;
+          }
+          j := j + 1;
+        }
+        i := i + 1;
       }
-      if allRevealed {
-        state := WON;
-      }  
+      state := if allRevealed then WON else ONGOING;
     }
   }
 

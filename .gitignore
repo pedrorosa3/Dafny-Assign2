@@ -1,0 +1,11 @@
+# Ficheiros gerados pelo Dafny (dafny run / build)
+*.cs
+*.csproj
+*-py/
+*.dll
+*.exe
+*.pdb
+*.runtimeconfig.json
+*.deps.json
+bin/
+obj/
